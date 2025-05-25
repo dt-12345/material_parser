@@ -1,0 +1,6 @@
+[submodule "lib/json"]
+	path = lib/json
+	url = https://github.com/nlohmann/json.git
+[submodule "lib/MeshCodec"]
+	path = lib/MeshCodec
+	url = https://github.com/dt-12345/MeshCodec.git
