@@ -14,8 +14,9 @@ using DirectoryIter = std::filesystem::recursive_directory_iterator;
 
 static std::vector<unsigned char> sWorkMemory(0x10000000);
 
-static const std::array<std::string, 16> cNumberNames = {
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"
+// the game searches from 0 to 17 even though most shaders definitely do not support that range or even accept this range as valid choices
+static const std::array<std::string, 18> cNumberNames = {
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"
 };
 
 bool MaterialParser::Initialize() {

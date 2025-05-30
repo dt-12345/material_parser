@@ -7,23 +7,6 @@ class MarkedList:
     def __init__(self, l):
         self._list = l
 
-z = {    
-    "rows_parsed": [
-        MarkedList([
-          "a",
-          "b",
-          "c",
-          "d"
-        ]),
-        MarkedList([
-          "e",
-          "f",
-          "g",
-          "i"
-        ]),
-    ]
-}
-
 class CustomJSONEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, MarkedList):
