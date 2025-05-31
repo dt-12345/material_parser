@@ -10,7 +10,7 @@ class MarkedList:
 class CustomJSONEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, MarkedList):
-            return "##<{}>##".format(o._list)
+            return "##<{}>##".format(json.dumps(o._list))
 
 with open("Materials.json", "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -23,7 +23,7 @@ for file in data:
             data[file][model][mat]["Textures"] = MarkedList(data[file][model][mat]["Textures"])
 
 b = json.dumps(data, indent=2, separators=(', ', ': '), cls=CustomJSONEncoder)
-b = b.replace('"##<', "").replace('>##"', "")
+b = b.replace('"##<', "").replace('>##"', "").replace("\\\"", '"')
 
 with open("Materials.json", "w", encoding="utf-8") as f:
     f.write(b)
