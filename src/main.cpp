@@ -34,7 +34,8 @@ int main(int argc , const char* argv[]) {
         std::string material_archive_path = "";
         std::string external_binary_string_path = "";
         std::string output_path = "";
-        while (opt_index + 3 < argc) {
+        std::string romfs_path = "";
+        while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
             if (next_opt == "--shader-archive") {
                 material_archive_path = ParseInput(argc, argv, opt_index++);
@@ -45,16 +46,20 @@ int main(int argc , const char* argv[]) {
                 if (output_path == "-") {
                     output_path = "";
                 }
+            } else if (next_opt == "--romfs") {
+                romfs_path = ParseInput(argc, argv, opt_index++);
+            } else {
+                romfs_path = next_opt;
             }
         }
-        std::string romfs_path = ParseInput(argc, argv, opt_index);
         MakeMissingDirectories(output_path);
         MaterialParser(romfs_path, material_archive_path, external_binary_string_path, output_path).Run();
     } else if (opt == "search") {
+        std::string config_path = "";
         std::string material_archive_path = "";
         std::string output_path = "";
         bool verbose = false;
-        while (opt_index + 3 < argc) {
+        while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
             if (next_opt == "--shader-archive") {
                 material_archive_path = ParseInput(argc, argv, opt_index++);
@@ -65,16 +70,20 @@ int main(int argc , const char* argv[]) {
                 if (output_path == "-") {
                     output_path = "";
                 }
+            } else if (next_opt == "--config") {
+                config_path = ParseInput(argc, argv, opt_index++);
+            } else {
+                config_path = next_opt;
             }
         }
-        std::string config_path = ParseInput(argc, argv, opt_index);
         MakeMissingDirectories(output_path);
         MaterialSearcher(config_path, material_archive_path, output_path, verbose).Run();
     } else if (opt == "info") {
+        std::string model = "";
         std::string archive = "";
         std::string archive_path = "";
         std::string output_path = "";
-        while (opt_index + 3 < argc) {
+        while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
             if (next_opt == "--shader-archive") {
                 archive_path = ParseInput(argc, argv, opt_index++);
@@ -85,9 +94,12 @@ int main(int argc , const char* argv[]) {
                 if (output_path == "-") {
                     output_path = "";
                 }
+            } else if (next_opt == "--model") {
+                model = ParseInput(argc, argv, opt_index++);
+            } else {
+                model = next_opt;
             }
         }
-        std::string model = ParseInput(argc, argv, opt_index);
         MakeMissingDirectories(output_path);
         ShaderInfoPrinter(model, archive, archive_path, output_path).Run();
     } else if (opt == "" || opt == "help") {
