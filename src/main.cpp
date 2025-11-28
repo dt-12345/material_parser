@@ -53,7 +53,12 @@ int main(int argc , const char* argv[]) {
             }
         }
         MakeMissingDirectories(output_path);
-        MaterialParser(romfs_path, material_archive_path, external_binary_string_path, output_path).Run();
+        try {
+            MaterialParser(romfs_path, material_archive_path, external_binary_string_path, output_path).Run();
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Exception caught: [" << e.what() << "]\n";
+            return 1;
+        }
     } else if (opt == "search") {
         std::string config_path = "";
         std::string material_archive_path = "";
@@ -77,7 +82,12 @@ int main(int argc , const char* argv[]) {
             }
         }
         MakeMissingDirectories(output_path);
-        MaterialSearcher(config_path, material_archive_path, output_path, verbose).Run();
+        try {
+            MaterialSearcher(config_path, material_archive_path, output_path, verbose).Run();
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Exception caught: [" << e.what() << "]\n";
+            return 1;
+        }
     } else if (opt == "info") {
         std::string model = "";
         std::string archive = "";
@@ -101,7 +111,12 @@ int main(int argc , const char* argv[]) {
             }
         }
         MakeMissingDirectories(output_path);
-        ShaderInfoPrinter(model, archive, archive_path, output_path).Run();
+        try {
+            ShaderInfoPrinter(model, archive, archive_path, output_path).Run();
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Exception caught: [" << e.what() << "]\n";
+            return 1;
+        }
     } else if (opt == "" || opt == "help") {
         std::cout <<
         "Material Tool\n"
@@ -136,7 +151,8 @@ int main(int argc , const char* argv[]) {
         "  Output information about the material shading model in material.Product.140.product.Nin_NX_NVN.bfsha\n"
         "    mat-tool info --shader-archive material.Product.140.product.Nin_NX_NVN.bfsha material\n";
     } else {
-        std::cout << "Unknown option: " << opt << "\n";
+        std::cerr << "Unknown option: " << opt << "\n";
+        return 1;
     }
 
     return 0;
