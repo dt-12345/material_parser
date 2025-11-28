@@ -27,10 +27,10 @@ int main(int argc , const char* argv[]) {
         std::string material_archive_path = "";
         std::string external_binary_string_path = "";
         while (opt_index + 3 < argc) {
-            const std::string opt = ParseInput(argc, argv, opt_index++);
-            if (opt == "--shader-archive") {
+            const std::string next_opt = ParseInput(argc, argv, opt_index++);
+            if (next_opt == "--shader-archive") {
                 material_archive_path = ParseInput(argc, argv, opt_index++);
-            } else if (opt == "--external-binary-string") {
+            } else if (next_opt == "--external-binary-string") {
                 external_binary_string_path = ParseInput(argc, argv, opt_index++);
             }
         }
@@ -40,10 +40,10 @@ int main(int argc , const char* argv[]) {
         std::string material_archive_path = "";
         bool verbose = false;
         while (opt_index + 3 < argc) {
-            const std::string opt = ParseInput(argc, argv, opt_index++);
-            if (opt == "--shader-archive") {
+            const std::string next_opt = ParseInput(argc, argv, opt_index++);
+            if (next_opt == "--shader-archive") {
                 material_archive_path = ParseInput(argc, argv, opt_index++);
-            } else if (opt == "--verbose") {
+            } else if (next_opt == "--verbose") {
                 verbose = true;
             }
         }
@@ -53,10 +53,10 @@ int main(int argc , const char* argv[]) {
         std::string archive = "";
         std::string archive_path = "";
         while (opt_index + 3 < argc) {
-            const std::string opt = ParseInput(argc, argv, opt_index++);
-            if (opt == "--shader-archive") {
+            const std::string next_opt = ParseInput(argc, argv, opt_index++);
+            if (next_opt == "--shader-archive") {
                 archive_path = ParseInput(argc, argv, opt_index++);
-            } else if (opt == "--archive-name") {
+            } else if (next_opt == "--archive-name") {
                 archive = ParseInput(argc, argv, opt_index++);
             }
         }

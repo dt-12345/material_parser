@@ -135,7 +135,7 @@ void MaterialParser::ProcessFile(const std::string path, json& output, bool comp
             }
 
             for (size_t k = 0; k < mat.shader_data->total_static_option_count; ++k) {
-                const u16 index = mat.shader_data->static_option_index_array ? mat.shader_data->static_option_index_array[k] : k;
+                const u16 index = mat.shader_data->static_option_index_array ? mat.shader_data->static_option_index_array[k] : static_cast<u16>(k);
                 const std::string_view& key = mat.shader_data->shader_reflection->static_option_dict->entries[index + 1].key->Get();
 
                 if (k < mat.shader_data->bool_static_option_count) {
@@ -290,8 +290,8 @@ void MaterialSearcher::Run() {
 
     std::ifstream f(mConfigPath);
     json data = json::parse(f);
-    const std::string_view archive_name = data.value("Archive Name", "material");
-    const std::string_view model_name = data.value("Model Name", "material");
+    const std::string archive_name = data.value("Archive Name", "material");
+    const std::string model_name = data.value("Model Name", "material");
     
     const g3d2::ResShaderFile* shader_file = mContext.GetShaderArchive();
     if (shader_file->archive->name->Get() != archive_name) {

@@ -4,6 +4,10 @@
 
 #include <array>
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4201)
+#endif
+
 template <typename T, size_t Rows, size_t Columns>
 struct MatrixBase {
     union {
@@ -61,3 +65,7 @@ struct Quat {
 };
 
 using Quatf = Quat<f32>;
+
+#ifdef _MSC_VER
+#pragma warning(default : 4201)
+#endif
