@@ -1,6 +1,9 @@
 build/*
+build_vs/*
 .vscode/*
 .cache/*
 *.mc
 *.bfres
 *.bfsha
+*.json
+*.yml

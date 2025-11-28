@@ -45,10 +45,10 @@ struct ResVertexAttributeLocation {
 static_assert(sizeof(ResVertexAttributeLocation) == 0x2);
 
 struct ResShaderProgram {
-    u32* sampler_interface_slots;
-    u32* image_interface_slots;
-    u32* ubo_interface_slots;
-    u32* ssbo_interface_slots;
+    s32* sampler_interface_slots;
+    s32* image_interface_slots;
+    s32* ubo_interface_slots;
+    s32* ssbo_interface_slots;
     void* _20;
     ResShadingModel* parent_model;
     u32 _30;
@@ -56,6 +56,18 @@ struct ResShaderProgram {
     u8 _36[10];
 };
 static_assert(sizeof(ResShaderProgram) == 0x40);
+
+struct ResInterface {
+    BinString* type;
+    BinString* name;
+};
+
+struct ResInterfaceInfo {
+    ResInterface* sampler_locations; 
+    ResInterface* image_locations; 
+    ResInterface* ubo_locations; 
+    ResInterface* ssbo_locations; 
+};
 
 struct ResShadingModel {
     BinString* name;
@@ -78,7 +90,7 @@ struct ResShadingModel {
     ResShaderProgram* program_array;
     u32* key_table;
     ResShaderArchive* parent_archive;
-    void* interfaces;
+    ResInterfaceInfo* interfaces;
     ::gfx::ResShaderFile* shader; // bnsh
     void* runtime_data_pointer;
     void* _b8;

@@ -14,13 +14,22 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_compile_options(-fcolor-diagnostics)
 endif()
 
+if (MINGW)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-libgcc -static-libstdc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+endif()
+
 set(JSON_BuildTests OFF CACHE INTERNAL "")
+set(ZSTD_BUILD_SHARED OFF CACHE INTERNAL "")
+set(ZSTD_BUILD_PROGRAMS OFF CACHE INTERNAL "")
+set(ZSTD_STATIC_LINKING_ONLY ON CACHE INTERNAL "")
 
 add_subdirectory(lib/MeshCodec)
 add_subdirectory(lib/json)
 
 add_executable(
-    MaterialParser
+    mat-tool
     
     src/include/types.h
     src/include/math_types.h
@@ -31,24 +40,24 @@ add_executable(
     src/include/bfsha.h
     src/include/shader.h
 
-    src/include/material_parser.h
+    src/include/app.h
 
     src/binary_file.cpp
     src/bfres.cpp
 
     src/shader.cpp
 
-    src/material_parser.cpp
+    src/app.cpp
 
     src/main.cpp
 )
 
-target_include_directories(MaterialParser PRIVATE src/include)
+target_include_directories(mat-tool PRIVATE src/include)
 
-target_link_libraries(MaterialParser PRIVATE MeshCodec nlohmann_json::nlohmann_json)
+target_link_libraries(mat-tool PRIVATE MeshCodec nlohmann_json::nlohmann_json)
 
 if (MSVC)
-    target_compile_options(MaterialParser PRIVATE /W4 /wd4244 /wd4127 /Zc:__cplusplus)
+    target_compile_options(mat-tool PRIVATE /W4 /wd4244 /wd4127 /Zc:__cplusplus)
 else()
-    target_compile_options(MaterialParser PRIVATE -Wall -Wextra -fno-plt)
+    target_compile_options(mat-tool PRIVATE -Wall -Wextra -fno-plt)
 endif()

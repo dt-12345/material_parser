@@ -55,7 +55,7 @@ struct BinaryFileHeader {
     }
 
     void SetRelocated(bool is_relocated) {
-        flags = (flags & 0xfffe) | is_relocated;
+        flags = (flags & 0xfffe) | static_cast<u16>(is_relocated);
     }
 
     bool IsSignatureValid(u64 sig) const {
@@ -71,7 +71,7 @@ struct BinaryFileHeader {
     }
 
     size_t GetAlignment() const {
-        return 1 << alignment_shift;
+        return 1ull << alignment_shift;
     }
 
     BinaryBlockHeader* GetFirstBlock() const {
