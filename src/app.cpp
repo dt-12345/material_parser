@@ -2,11 +2,6 @@
 
 #include "mc_MeshCodec.h"
 
-#include <exception>
-#include <fstream>
-#include <iostream>
-#include <ranges>
-
 using DirectoryIter = std::filesystem::recursive_directory_iterator;
 
 static std::vector<unsigned char> sWorkMemory(0x10000000);
@@ -182,7 +177,7 @@ void MaterialParser::Run() {
         }
     }
 
-    std::ofstream out("Materials.json");
+    std::ofstream out(mOutputPath);
     out << std::setw(2) << output << std::endl;
 }
 
@@ -220,9 +215,9 @@ static bool IsStaticOptionRenderInfo(const std::string_view name) {
 
 static const std::string_view TryConvertRenderInfo(const std::string_view key, const std::string_view value) {
     if (key == ShaderSelector::cRenderStateName) {
-        return ShaderSelector::cRenderStates[std::stoi(std::string(value))];
+        return ShaderSelector::cRenderStates.at(std::stoi(std::string(value)));
     } else if (key == ShaderSelector::cAlphaTestFuncName) {
-        return ShaderSelector::cCompareFuncs[std::stoi(std::string(value))];
+        return ShaderSelector::cCompareFuncs.at(std::stoi(std::string(value)));
     } else if (key == ShaderSelector::cAlphaTestEnableName) {
         if (value == ShaderSelector::cTrue) {
             return "true";
@@ -230,18 +225,18 @@ static const std::string_view TryConvertRenderInfo(const std::string_view key, c
             return "false";
         }
     } else if (key == ShaderSelector::cDisplayFaceTypeName) {
-        return ShaderSelector::cDisplayFaces[std::stoi(std::string(value))];
+        return ShaderSelector::cDisplayFaces.at(std::stoi(std::string(value)));
     } else if (key == ShaderSelector::cPassName) {
-        return ShaderSelector::cPasses[std::stoi(std::string(value))];
+        return ShaderSelector::cPasses.at(std::stoi(std::string(value)));
     }
     return value;
 }
 
 void MaterialSearcher::Print(const g3d2::ResShadingModel* model, const u32* keys) const {
-    std::cout << "Shader found with the following options:\n";
+    *mOutStream << "Shader found with the following options:\n";
     if (mVerbose) {
         if (model->static_option_count > 0) {
-            std::cout << "  Static:\n";
+            *mOutStream << "  Static:\n";
             for (size_t i = 0; i < model->static_option_count; ++i) {
                 const auto& opt = model->static_option_array[i];
                 const u32 value = GetStaticKeyValue(keys, &opt);
@@ -250,35 +245,35 @@ void MaterialSearcher::Print(const g3d2::ResShadingModel* model, const u32* keys
                 }
                 const std::string_view key = opt.name->Get();
                 const std::string_view val = opt.choice_dict->entries[value + 1].key->Get();
-                std::cout << std::format("    {}: {}\n", key, TryConvertRenderInfo(key, val));
+                *mOutStream << std::format("    {}: {}\n", key, TryConvertRenderInfo(key, val));
             }
         }
         if (model->dynamic_option_count > 0) {
-            std::cout << "  Dynamic:\n";
+            *mOutStream << "  Dynamic:\n";
             for (size_t i = 0; i < model->dynamic_option_count; ++i) {
                 const auto& opt = model->dynamic_option_array[i];
                 const u32 value = GetDynamicKeyValue(keys, &opt, model->static_key_count);
                 if (value == opt.default_choice) {
                     continue;
                 }
-                std::cout << std::format("    {}: {}\n", opt.name->Get(), opt.choice_dict->entries[value + 1].key->Get());
+                *mOutStream << std::format("    {}: {}\n", opt.name->Get(), opt.choice_dict->entries[value + 1].key->Get());
             }
         }
     } else {
         if (!mStaticConstraints.empty()) {
-            std::cout << "  Static:\n";
+            *mOutStream << "  Static:\n";
             for (const auto& constraint : mStaticConstraints) {
                 const u32 value = GetStaticKeyValue(keys, constraint.option);
                 const std::string_view key = constraint.option->name->Get();
                 const std::string_view val = constraint.option->choice_dict->entries[value + 1].key->Get();
-                std::cout << std::format("    {}: {}\n", key, TryConvertRenderInfo(key, val));
+                *mOutStream << std::format("    {}: {}\n", key, TryConvertRenderInfo(key, val));
             }
         }
         if (!mDynamicConstraints.empty()) {
-            std::cout << "  Dynamic:\n";
+            *mOutStream << "  Dynamic:\n";
             for (const auto& constraint : mDynamicConstraints) {
                 const u32 value = GetDynamicKeyValue(keys, constraint.option, model->static_key_count);
-                std::cout << std::format("    {}: {}\n", constraint.option->name->Get(), constraint.option->choice_dict->entries[value + 1].key->Get());
+                *mOutStream << std::format("    {}: {}\n", constraint.option->name->Get(), constraint.option->choice_dict->entries[value + 1].key->Get());
             }
         }
     }
@@ -388,7 +383,7 @@ void ShaderInfoPrinter::Run() {
         return;
     }
 
-    std::ofstream out("ShaderInfo.yml");
+    std::ofstream out(mOutputPath);
 
     out << std::format("# Shader Options for {}\n", mModelName);
     out << "Static Options:\n";

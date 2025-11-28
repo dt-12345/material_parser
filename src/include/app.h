@@ -8,7 +8,11 @@
 
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <iostream>
+#include <ranges>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -55,13 +59,17 @@ public:
     MaterialParser() = delete;
     explicit MaterialParser(const std::string_view romfs_path,
                             const std::string_view material_archive_path = "",
-                            const std::string_view external_binary_string_path = "")
-        : mRomfsPath(romfs_path), mMaterialArchivePath(material_archive_path), mExternalBinaryStringPath{external_binary_string_path} {
+                            const std::string_view external_binary_string_path = "",
+                            const std::string_view output_path = "")
+        : mRomfsPath(romfs_path), mMaterialArchivePath(material_archive_path), mExternalBinaryStringPath(external_binary_string_path), mOutputPath(output_path) {
         if (mMaterialArchivePath == "") {
             mMaterialArchivePath = "material.Product.140.product.Nin_NX_NVN.bfsha";
         }
         if (mExternalBinaryStringPath == "") {
             mExternalBinaryStringPath = (Path(mRomfsPath) / Path("Shader") / Path("ExternalBinaryString.bfres.mc")).string();
+        }
+        if (mOutputPath == "") {
+            mOutputPath = "Materials.json";
         }
     }
 
@@ -74,6 +82,7 @@ private:
     std::string mRomfsPath{};
     std::string mMaterialArchivePath{};
     std::string mExternalBinaryStringPath{};
+    std::string mOutputPath{};
     AppContext mContext{};
     bool mInitialized = false;
 };
@@ -112,7 +121,13 @@ struct Constraint {
                 ParseValue(key, v);
             }
         } else {
-            ParseValue(key, value);
+            if (value.is_null()) {
+                for (const auto i : std::ranges::views::iota(0u, static_cast<u32>(option->choice_count))) {
+                    values.push_back(i);
+                }
+            } else {
+                ParseValue(key, value);
+            }
         }
     }
 
@@ -172,10 +187,18 @@ private:
 class MaterialSearcher {
 public:
     MaterialSearcher() = delete;
-    explicit MaterialSearcher(const std::string config_path, const std::string_view material_archive_path = "", bool verbose = false)
-        : mConfigPath(config_path), mMaterialArchivePath(material_archive_path), mVerbose(verbose) {
+    explicit MaterialSearcher(const std::string config_path,
+                              const std::string_view material_archive_path = "",
+                              const std::string_view output_path = "",
+                              bool verbose = false)
+            : mConfigPath(config_path), mMaterialArchivePath(material_archive_path), mOutputFileStream(std::string(output_path)), mVerbose(verbose) {
         if (mMaterialArchivePath == "") {
             mMaterialArchivePath = "material.Product.140.product.Nin_NX_NVN.bfsha";
+        }
+        if (output_path == "") {
+            mOutStream = &std::cout;
+        } else {
+            mOutStream = &mOutputFileStream;
         }
     }
 
@@ -190,6 +213,8 @@ private:
     std::vector<Constraint<false>> mStaticConstraints{};
     std::vector<Constraint<true>> mDynamicConstraints{};
     AppContext mContext{};
+    std::ostream* mOutStream = nullptr;
+    std::ofstream mOutputFileStream;
     bool mInitialized = false;
     bool mVerbose = false;
 };
@@ -197,13 +222,19 @@ private:
 class ShaderInfoPrinter {
 public:
     ShaderInfoPrinter() = delete;
-    explicit ShaderInfoPrinter(const std::string model, const std::string archive = "", const std::string archive_path = "")
-        : mArchivePath(archive_path), mArchiveName(archive), mModelName(model) {
+    explicit ShaderInfoPrinter(const std::string_view model,
+                               const std::string_view archive = "",
+                               const std::string_view archive_path = "",
+                               const std::string_view output_path = "")
+        : mArchivePath(archive_path), mArchiveName(archive), mModelName(model), mOutputPath(output_path) {
         if (archive == "") {
             mArchiveName = mModelName;
         }
         if (archive_path == "") {
             mArchivePath = "material.Product.140.product.Nin_NX_NVN.bfsha";
+        }
+        if (mOutputPath == "") {
+            mOutputPath = "ShaderInfo.yml";
         }
     }
 
@@ -214,6 +245,7 @@ private:
     std::string mArchivePath{};
     std::string mArchiveName{};
     std::string mModelName{};
+    std::string mOutputPath{};
     AppContext mContext{};
     bool mInitialized = false;
 };

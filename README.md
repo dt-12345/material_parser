@@ -12,22 +12,25 @@ Usage: mat-tool [action]
 
 Actions:
   dump [options] romfs_path
-    Dumps information about materials found in models to Materials.json
+    Dumps information about materials found in models
     Arguments:
       --shader-archive         : path to material bfsha shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'
       --external-binary-string : path to ExternalBinaryString.bfres.mc; defaults to romfs_path/Shader/ExternalBinaryString.bfres.mc
+      --out                    : path to file to output to; defaults to 'Materials.json'
       romfs_path               : path to romfs with Models directory
   search [options] query_config
     Searches a shader archive for matching shaders given the a set of conditions (useful for material design)
     Arguments:
       --shader-archive         : path to the shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'
       --verbose                : print all non-default shader options (as opposed to just the specified ones); defaults to false
+      --out                    : path to file to output to; defaults to stdout
       query_config             : path to JSON search config file
   info [options] shading_model_name
-    Outputs information about the possible shader options in the provided shading model to ShaderInfo.yml
+    Outputs information about the possible shader options in the provided shading model
     Arguments:
       --shader-archive         : path to the shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'
       --archive-name           : name of shader archive; defaults to the shading model name
+      --out                    : path to file to output to; defaults to 'ShaderInfo.yml'
       shading_model_name       : name of shading model within archive to print info about
 
 Examples:
@@ -49,7 +52,7 @@ Examples:
         "o_ao_color": "400"                 // constrain an option to the specified value - this matches shaders supporting o_ao_color == 400
     },
     "Render Info": {                        // Material Render Info
-        "gsys_alpha_test_enable": "true"    // constrain an option to the specified value - this matches shaders supporting gsys_alpha_test_enable == true
+        "gsys_alpha_test_enable": null      // leave an option unconstrained - this matches shaders supporting any valid value for gsys_alpha_test_enable
     },
     "Dynamic Options": {                    // Dynamic Shader Options
         // Note: gsys_weight is equivalent to a shape's skin count
