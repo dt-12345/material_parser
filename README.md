@@ -46,8 +46,8 @@ Examples:
 
 ```json
 {
-    "Archive Name" : "material",            // Shader archive name, defaults to "material" if unspecified
-    "Model Name" : "material",              // Shading model name, defaults to "material" if unspecified
+    "Archive Name": "material",             // Shader archive name, defaults to "material" if unspecified
+    "Model Name": "material",               // Shading model name, defaults to "material" if unspecified
     "Static Options": {                     // Static shader options
         "o_ao_color": "400"                 // constrain an option to the specified value - this matches shaders supporting o_ao_color == 400
     },
