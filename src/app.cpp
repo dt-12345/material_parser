@@ -448,7 +448,7 @@ void ShaderInfoPrinter::ProcessModel(ordered_json& output, const g3d2::ResShadin
                 { "Name", name },
                 { "Annotation", uniform.annotation->Get() },
                 { "Index", uniform.index },
-                { "Offset", uniform.offset },
+                { "Offset", uniform.offset - 1 },
             }));
         }
         output["UBOs"][name] = std::move(ubo_info);
@@ -474,7 +474,7 @@ void ShaderInfoPrinter::ProcessModel(ordered_json& output, const g3d2::ResShadin
                 { "Name", name },
                 { "Annotation", uniform.annotation->Get() },
                 { "Index", uniform.index },
-                { "Offset", uniform.offset },
+                { "Offset", uniform.offset - 1 },
             }));
         }
         output["SSBOs"][name] = std::move(ssbo_info);
