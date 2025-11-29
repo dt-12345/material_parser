@@ -192,7 +192,7 @@ int main(int argc , const char* argv[]) {
         "  Search for matching shaders:\n"
         "    mat-tool search query.json\n"
         "  Output information about the material shading model in material.Product.140.product.Nin_NX_NVN.bfsha\n"
-        "    mat-tool info --shader-archive material.Product.140.product.Nin_NX_NVN.bfsha material\n";
+        "    mat-tool info --shader-archive material.Product.140.product.Nin_NX_NVN.bfsha --model-name material\n";
     } else {
         std::cerr << "Unknown option: " << opt << "\n";
         return 1;

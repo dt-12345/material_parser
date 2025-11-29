@@ -10,6 +10,8 @@ def run_command(cmd: list[str]) -> str:
     p: subprocess.Popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while (exit_code := p.poll()) is None:
         res += p.stdout.read().decode()
+    if exit_code != 0:
+        raise subprocess.CalledProcessError(f"{cmd} exited with {exit_code}:\n{p.stderr.read().decode()}")
     return res
         
 def convert_to_access(offset: int) -> str:

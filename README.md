@@ -48,7 +48,7 @@ Examples:
   Search for matching shaders:
     mat-tool search query.json
   Output information about the material shading model in material.Product.140.product.Nin_NX_NVN.bfsha
-    mat-tool info --shader-archive material.Product.140.product.Nin_NX_NVN.bfsha material
+    mat-tool info --shader-archive material.Product.140.product.Nin_NX_NVN.bfsha --model-name material
 ```
 
 ## Search Query JSON Example
