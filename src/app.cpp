@@ -618,6 +618,10 @@ void ShaderInfoPrinter::Run() {
         }
     }
 
-    std::ofstream out(mOutputPath);
-    out << std::setw(2) << output << std::endl;
+    if (mOutputPath != "-") {
+        std::ofstream out(mOutputPath);
+        out << std::setw(2) << output << std::endl;
+    } else {
+        std::cout << std::setw(2) << output << std::endl;
+    }
 }

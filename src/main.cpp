@@ -99,9 +99,6 @@ int main(int argc , const char* argv[]) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
             if (next_opt == "--out" || next_opt == "-o") {
                 output_path = ParseInput(argc, argv, opt_index++);
-                if (output_path == "-") {
-                    output_path = "";
-                }
             } else if (next_opt == "--no-options" || next_opt == "-n") {
                 dump_opts = false;
             } else if (next_opt == "--dump-bin") {
