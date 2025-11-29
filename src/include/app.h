@@ -278,3 +278,28 @@ private:
     bool mDumpOptions = true;
     bool mDumpBin = false;
 };
+
+class ShaderExtractor {
+public:
+    ShaderExtractor() = delete;
+    explicit ShaderExtractor(const std::string_view output_path,
+                             const std::string_view archive_path,
+                             const std::string_view model_name,
+                             int program_index = -1)
+        : mArchivePath(archive_path), mOutputPath(output_path), mModelName(model_name), mProgramIndex(program_index) {
+        if (mModelName == "") {
+            mModelName = "material";
+        }
+    }
+    
+    bool Initialize();
+    void Run();
+
+private:
+    std::string mArchivePath{};
+    std::string mOutputPath{};
+    std::string mModelName{};
+    AppContext mContext{};
+    int mProgramIndex = -1;
+    bool mInitialized = false;
+};

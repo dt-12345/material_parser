@@ -4,6 +4,16 @@
 
 using DirectoryIter = std::filesystem::recursive_directory_iterator;
 
+constexpr static auto cShaderStageNames = std::to_array<std::string_view>({
+    "Vertex", "Tessellation Control", "Tessellation Evaluation",
+    "Geometry", "Fragment", "Compute",
+});
+
+constexpr static auto cInterfaceTypeNames = std::to_array<std::string_view>({
+    "Input Attributes", "Output Attributes", "Samplers", "Uniforms",
+    "Storage Buffers", "Images", "Separate Textures", "Separate Samplers",
+});
+
 static std::vector<unsigned char> sWorkMemory(0x10000000);
 
 bool AppContext::ReadFile(const std::string path, std::vector<u8>& data) {
@@ -540,8 +550,8 @@ void ShaderInfoPrinter::Run() {
     const auto shader_file = mContext.GetShaderArchive();
     
     ordered_json output = {};
+    output["Archive Name"] = shader_file->archive->name->Get();
     if (mProgramIndex < 0) {
-        output["Archive Name"] = shader_file->archive->name->Get();
         if (mModelName == "") {
             // dump all shading models
             output["Models"] = {};
@@ -585,7 +595,6 @@ void ShaderInfoPrinter::Run() {
             return;
         }
 
-        output["Archive Name"] = shader_file->archive->name->Get();
         output["Model Name"] = model->name->Get();
         output["Program Index"] = mProgramIndex;
 
@@ -597,16 +606,6 @@ void ShaderInfoPrinter::Run() {
         }
 
         const auto* ifc_table = program.variation->binary->interfaces;
-
-        constexpr static auto cShaderStageNames = std::to_array<std::string_view>({
-            "Vertex", "Tessellation Control", "Tessellation Evaluation",
-            "Geometry", "Fragment", "Compute",
-        });
-
-        constexpr static auto cInterfaceTypeNames = std::to_array<std::string_view>({
-            "Input Attributes", "Output Attributes", "Samplers", "Uniforms",
-            "Storage Buffers", "Images", "Separate Textures", "Separate Samplers",
-        });
 
         for (u32 stage = 0; stage < gfx::ShaderStage_End; ++stage) {
             const auto* table = ifc_table->stages[stage];
@@ -724,5 +723,83 @@ void ShaderInfoPrinter::Run() {
         out << std::setw(2) << output << std::endl;
     } else {
         std::cout << std::setw(2) << output << std::endl;
+    }
+}
+
+
+bool ShaderExtractor::Initialize() {
+    if (mInitialized)
+        return mInitialized;
+
+    if (!mContext.InitializeShaderArchive(mArchivePath)) {
+        std::cout << "Failed to load shader archive\n";
+        return false;
+    }
+
+    mInitialized = true;
+    return true;
+}
+
+void ShaderExtractor::Run() {
+    if (!Initialize())
+        return;
+    
+    const auto shader_file = mContext.GetShaderArchive();
+    g3d2::ResShadingModel* model = nullptr;
+    for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
+        if (shader_file->archive->shading_model_array[i].name->Get() == mModelName) {
+            model = shader_file->archive->shading_model_array + i;
+            break;
+        }
+    }
+    if (model == nullptr) {
+        std::cout << "No shading model named " << mModelName << "\n";
+        return;
+    }
+    if (mProgramIndex < 0) {
+        for (size_t i = 0; i < model->shader_program_count; ++i) {
+            const auto& program = model->program_array[i];
+            if (program.variation->binary == nullptr) {
+                continue;
+            }
+        
+            for (u32 stage = 0; stage < gfx::ShaderStage_End; ++stage) {
+                const auto* code_ptr = program.variation->binary->shader_code_ptrs[stage];
+                if (code_ptr == nullptr) {
+                    continue;
+                }
+                const std::string basename = std::format("{}_{}_{}_{}", shader_file->archive->name->Get(), model->name->Get(), i, cShaderStageNames[stage]);
+                const Path dir = Path(mOutputPath);
+                const std::string code_name = (dir / Path(std::format("{}_code.bin", basename))).string();
+                const std::string control_name = (dir / Path(std::format("{}_control.bin", basename))).string();
+                mContext.WriteFile(code_name, { code_ptr->code, code_ptr->code_size });
+                mContext.WriteFile(control_name, { code_ptr->control, code_ptr->control_size });
+            }
+        }
+    } else {
+        if (mProgramIndex >= model->shader_program_count) {
+            std::cout << std::format("Out of range program index for model {}: {}\n", model->name->Get(), mProgramIndex);
+            return;
+        }
+
+        const auto& program = model->program_array[mProgramIndex];
+        
+        if (program.variation->binary == nullptr) {
+            std::cout << "No binary associated with this program\n";
+            return;
+        }
+
+        for (u32 stage = 0; stage < gfx::ShaderStage_End; ++stage) {
+            const auto* code_ptr = program.variation->binary->shader_code_ptrs[stage];
+            if (code_ptr == nullptr) {
+                continue;
+            }
+            const std::string basename = std::format("{}_{}_{}_{}", shader_file->archive->name->Get(), model->name->Get(), mProgramIndex, cShaderStageNames[stage]);
+            const Path dir = Path(mOutputPath);
+            const std::string code_name = (dir / Path(std::format("{}_code.bin", basename))).string();
+            const std::string control_name = (dir / Path(std::format("{}_control.bin", basename))).string();
+            mContext.WriteFile(code_name, { code_ptr->code, code_ptr->code_size });
+            mContext.WriteFile(control_name, { code_ptr->control, code_ptr->control_size });
+        }
     }
 }

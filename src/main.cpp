@@ -17,8 +17,13 @@ static const std::string ParseInput(int argc, const char** argv, int index) {
     return value;
 }
 
-static void MakeMissingDirectories(const std::string_view path) {
-    const Path dir = Path(path).parent_path();
+static void MakeMissingDirectories(const std::string_view path, bool is_dir = false) {
+    Path dir;
+    if (is_dir) {
+        dir = Path(path);
+    } else {
+        dir = Path(path).parent_path();
+    }
     if (!dir.empty() && !std::filesystem::exists(dir)) {
         std::filesystem::create_directories(dir);
     }
@@ -116,6 +121,32 @@ int main(int argc , const char* argv[]) {
         MakeMissingDirectories(output_path);
         try {
             ShaderInfoPrinter(archive_path, output_path, model_name, program_index, dump_opts, dump_bin).Run();
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Exception caught: [" << e.what() << "]\n";
+            return 1;
+        }
+    } else if (opt == "extract") {
+        std::string output_path = "";
+        std::string archive_path = "";
+        std::string model_name = "";
+        int program_index = -1;
+        while (opt_index + 1 < argc) {
+            const std::string next_opt = ParseInput(argc, argv, opt_index++);
+            if (next_opt == "--out" || next_opt == "-o") {
+                output_path = ParseInput(argc, argv, opt_index++);
+            } else if (next_opt == "--model-name"  || next_opt == "-m") {
+                model_name = ParseInput(argc, argv, opt_index++);
+            } else if (next_opt == "--program" || next_opt == "--variation" || next_opt == "--index" || next_opt == "-i") {
+                program_index = std::stoi(ParseInput(argc, argv, opt_index++));
+            } else if (next_opt == "--shader-archive" || next_opt == "-a") {
+                archive_path = ParseInput(argc, argv, opt_index++);
+            } else {
+                archive_path = next_opt;
+            }
+        }
+        MakeMissingDirectories(output_path, true);
+        try {
+            ShaderExtractor(output_path, archive_path, model_name, program_index).Run();
         } catch (const std::runtime_error& e) {
             std::cerr << "Exception caught: [" << e.what() << "]\n";
             return 1;
