@@ -103,6 +103,7 @@ void MaterialParser::ProcessFile(const std::string path, json& output, bool comp
                 {"Textures", json::array()},
                 {"Render Info", json({})},
                 {"Skin Counts", json::array()},
+                {"Shader Indices", json::array()},
             };
 
             ShaderSelector selector{};
@@ -121,6 +122,7 @@ void MaterialParser::ProcessFile(const std::string path, json& output, bool comp
 
                 if (program != nullptr) {
                     mat_info["Skin Counts"].push_back(k);
+                    mat_info["Shader Indices"].push_back(std::distance(static_cast<const g3d2::ResShaderProgram*>(program->parent_model->program_array), program));
                 }
             }
 
