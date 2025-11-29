@@ -34,6 +34,13 @@ Actions:
       --no-options             : skip dumping of shader options in output; defaults to include options
       --dump-bin               : dump shader code and control to files, ignored if no program index is specified; defaults to off
       --out                    : path to file to output to; defaults to 'ShaderInfo.json'
+  extract [options] shader_archive
+    Extract shader binaries from the specified model in the archive, files are named {archive_name}_{model_name}_{index}_{shader_stage}_{type}.bin
+    Arguments:
+      --shader-archive         : path to the shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'
+      --model-name             : name of shading model to extract from; defaults to material
+      --index                  : index of shader program to dump, ignore to dump all shaders in the model; defaults to -1
+      --out                    : path to output directory; defaults to the current directory
 
 Examples:
   Dump information about materials in romfs:
