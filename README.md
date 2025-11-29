@@ -25,7 +25,7 @@ Actions:
       --verbose                : print all non-default shader options (as opposed to just the specified ones); defaults to false
       --out                    : path to file to output to; defaults to stdout
       query_config             : path to JSON search config file
-  info [options] shading_model_name
+  info [options] shader_archive
     Outputs information about specified shading model(s) (or shader program if a program index is provided)
     Arguments:
       --shader-archive         : path to the shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'
@@ -34,7 +34,6 @@ Actions:
       --no-options             : skip dumping of shader options in output; defaults to include options
       --dump-bin               : dump shader code and control to files, ignored if no program index is specified; defaults to off
       --out                    : path to file to output to; defaults to 'ShaderInfo.json'
-      shading_model_name       : name of shading model within archive to print info about
 
 Examples:
   Dump information about materials in romfs:

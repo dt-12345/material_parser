@@ -8,3 +8,4 @@ build_vs/*
 *.json
 *.yml
 *.txt
+*.bin

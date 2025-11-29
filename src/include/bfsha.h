@@ -276,8 +276,8 @@ struct ResShadingModel {
     ResDic* sampler_dict;
 
     // seemingly unused, but probably images, right? there's nothing else left
-    void* _48;
-    ResDic* _50;
+    void* image_array;
+    ResDic* image_dict;
 
     ResBufferObject* uniform_block_array;
     ResDic* uniform_block_dict;

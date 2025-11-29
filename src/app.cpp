@@ -404,7 +404,7 @@ void ShaderInfoPrinter::ProcessModel(ordered_json& output, const g3d2::ResShadin
 
     ProcessInterfaces(output["Interfaces"]["Samplers"], model, model->sampler_dict, model->interfaces->sampler_locations, model->sampler_count);
     // no idea if this ResDic* here is actually the image dictionary, but it would make sense if it was
-    ProcessInterfaces(output["Interfaces"]["Images"], model, model->_50, model->interfaces->image_locations, model->image_count);
+    ProcessInterfaces(output["Interfaces"]["Images"], model, model->image_dict, model->interfaces->image_locations, model->image_count);
     ProcessInterfaces(output["Interfaces"]["UBOs"], model, model->uniform_block_dict, model->interfaces->ubo_locations, model->uniform_block_count);
     ProcessInterfaces(output["Interfaces"]["SSBOs"], model, model->shader_storage_block_dict, model->interfaces->ssbo_locations, model->shader_storage_block_count);
 
@@ -508,6 +508,27 @@ void ShaderInfoPrinter::ProcessModel(ordered_json& output, const g3d2::ResShadin
         output["Static Options"] = static_options;
         output["Dynamic Options"] = dynamic_options;
     }
+}
+
+static u32 GetInterfaceSlot(const g3d2::ResShadingModel* model, const s32* slots, int index) {
+    union {
+        u32 raw;
+        s8 values[4];
+    } slot_mask;
+    slot_mask.raw = 0xffffffffu;
+    if (model->vertex_stage_base_location_index != -1) {
+        slot_mask.values[0] = slots[model->vertex_stage_base_location_index + model->shader_stage_count * index] & 0xff;
+    }
+    if (model->fragment_stage_base_location_index != -1) {
+        slot_mask.values[1] = slots[model->fragment_stage_base_location_index + model->shader_stage_count * index] & 0xff;
+    }
+    if (model->geometry_stage_base_location_index != -1) {
+        slot_mask.values[2] = slots[model->geometry_stage_base_location_index + model->shader_stage_count * index] & 0xff;
+    }
+    if (model->compute_stage_base_location_index != -1) {
+        slot_mask.values[3] = slots[model->compute_stage_base_location_index + model->shader_stage_count * index] & 0xff;
+    }
+    return slot_mask.raw;
 }
 
 void ShaderInfoPrinter::Run() {
@@ -614,6 +635,84 @@ void ShaderInfoPrinter::Run() {
                 const std::string control_name = (dir / Path(std::format("{}_control.bin", basename))).string();
                 mContext.WriteFile(code_name, { code_ptr->code, code_ptr->code_size });
                 mContext.WriteFile(control_name, { code_ptr->control, code_ptr->control_size });
+            }
+        }
+
+        output["Interface Slots"] = ordered_json({});
+
+        if (model->sampler_dict != nullptr) {
+            for (size_t i = 0; i < model->sampler_count; ++i) {
+                const std::string_view name = model->sampler_dict->entries[i + 1].key->Get();
+                const u32 slots = GetInterfaceSlot(model, program.sampler_interface_slots, i);
+                if ((slots & 0xff) != 0xff) {
+                    output["Interface Slots"]["Vertex"]["Samplers"][name] = (slots & 0xff);
+                }
+                if ((slots >> 8 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Fragment"]["Samplers"][name] = (slots >> 8 & 0xff);
+                }
+                if ((slots >> 0x10 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Geometry"]["Samplers"][name] = (slots >> 0x10 & 0xff);
+                }
+                if ((slots >> 0x18 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Compute"]["Samplers"][name] = (slots >> 0x18 & 0xff);
+                }
+            }
+        }
+
+        if (model->image_dict != nullptr) {
+            for (size_t i = 0; i < model->image_count; ++i) {
+                const std::string_view name = model->image_dict->entries[i + 1].key->Get();
+                const u32 slots = GetInterfaceSlot(model, program.image_interface_slots, i);
+                if ((slots & 0xff) != 0xff) {
+                    output["Interface Slots"]["Vertex"]["Images"][name] = (slots & 0xff);
+                }
+                if ((slots >> 8 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Fragment"]["Images"][name] = (slots >> 8 & 0xff);
+                }
+                if ((slots >> 0x10 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Geometry"]["Images"][name] = (slots >> 0x10 & 0xff);
+                }
+                if ((slots >> 0x18 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Compute"]["Images"][name] = (slots >> 0x18 & 0xff);
+                }
+            }
+        }
+
+        if (model->uniform_block_dict != nullptr) {
+            for (size_t i = 0; i < model->uniform_block_count; ++i) {
+                const std::string_view name = model->uniform_block_dict->entries[i + 1].key->Get();
+                const u32 slots = GetInterfaceSlot(model, program.ubo_interface_slots, i);
+                if ((slots & 0xff) != 0xff) {
+                    output["Interface Slots"]["Vertex"]["UBOs"][name] = (slots & 0xff);
+                }
+                if ((slots >> 8 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Fragment"]["UBOs"][name] = (slots >> 8 & 0xff);
+                }
+                if ((slots >> 0x10 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Geometry"]["UBOs"][name] = (slots >> 0x10 & 0xff);
+                }
+                if ((slots >> 0x18 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Compute"]["UBOs"][name] = (slots >> 0x18 & 0xff);
+                }
+            }
+        }
+
+        if (model->shader_storage_block_dict != nullptr) {
+            for (size_t i = 0; i < model->shader_storage_block_count; ++i) {
+                const std::string_view name = model->shader_storage_block_dict->entries[i + 1].key->Get();
+                const u32 slots = GetInterfaceSlot(model, program.ssbo_interface_slots, i);
+                if ((slots & 0xff) != 0xff) {
+                    output["Interface Slots"]["Vertex"]["SSBOs"][name] = (slots & 0xff);
+                }
+                if ((slots >> 8 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Fragment"]["SSBOs"][name] = (slots >> 8 & 0xff);
+                }
+                if ((slots >> 0x10 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Geometry"]["SSBOs"][name] = (slots >> 0x10 & 0xff);
+                }
+                if ((slots >> 0x18 & 0xff) != 0xff) {
+                    output["Interface Slots"]["Compute"]["SSBOs"][name] = (slots >> 0x18 & 0xff);
+                }
             }
         }
     }
