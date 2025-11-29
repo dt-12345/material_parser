@@ -251,8 +251,9 @@ public:
                                const std::string_view output_path = "",
                                const std::string_view model_name = "",
                                int program_index = -1,
-                               bool dump_options = true)
-        : mArchivePath(archive_path), mOutputPath(output_path), mModelName(model_name), mProgramIndex(program_index), mDumpOptions(dump_options) {
+                               bool dump_options = true,
+                               bool dump_bin = false)
+        : mArchivePath(archive_path), mOutputPath(output_path), mModelName(model_name), mProgramIndex(program_index), mDumpOptions(dump_options), mDumpBin(dump_bin) {
         if (mOutputPath == "") {
             mOutputPath = "ShaderInfo.json";
         }
@@ -275,4 +276,5 @@ private:
     int mProgramIndex = -1;
     bool mInitialized = false;
     bool mDumpOptions = true;
+    bool mDumpBin = false;
 };

@@ -37,16 +37,16 @@ int main(int argc , const char* argv[]) {
         std::string romfs_path = "";
         while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
-            if (next_opt == "--shader-archive") {
+            if (next_opt == "--shader-archive" || next_opt == "-a") {
                 material_archive_path = ParseInput(argc, argv, opt_index++);
-            } else if (next_opt == "--external-binary-string") {
+            } else if (next_opt == "--external-binary-string" || next_opt == "-e") {
                 external_binary_string_path = ParseInput(argc, argv, opt_index++);
-            } else if (next_opt == "--out") {
+            } else if (next_opt == "--out" || next_opt == "-o") {
                 output_path = ParseInput(argc, argv, opt_index++);
                 if (output_path == "-") {
                     output_path = "";
                 }
-            } else if (next_opt == "--romfs") {
+            } else if (next_opt == "--romfs" || next_opt == "-r") {
                 romfs_path = ParseInput(argc, argv, opt_index++);
             } else {
                 romfs_path = next_opt;
@@ -66,16 +66,16 @@ int main(int argc , const char* argv[]) {
         bool verbose = false;
         while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
-            if (next_opt == "--shader-archive") {
+            if (next_opt == "--shader-archive" || next_opt == "-a") {
                 material_archive_path = ParseInput(argc, argv, opt_index++);
-            } else if (next_opt == "--verbose") {
+            } else if (next_opt == "--verbose" || next_opt == "-v") {
                 verbose = true;
-            } else if (next_opt == "--out") {
+            } else if (next_opt == "--out" || next_opt == "-o") {
                 output_path = ParseInput(argc, argv, opt_index++);
                 if (output_path == "-") {
                     output_path = "";
                 }
-            } else if (next_opt == "--config") {
+            } else if (next_opt == "--config" || next_opt == "-c") {
                 config_path = ParseInput(argc, argv, opt_index++);
             } else {
                 config_path = next_opt;
@@ -93,21 +93,24 @@ int main(int argc , const char* argv[]) {
         std::string output_path = "";
         std::string model_name = "";
         bool dump_opts = true;
+        bool dump_bin = false;
         int program_index = -1;
         while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
-            if (next_opt == "--out") {
+            if (next_opt == "--out" || next_opt == "-o") {
                 output_path = ParseInput(argc, argv, opt_index++);
                 if (output_path == "-") {
                     output_path = "";
                 }
-            } else if (next_opt == "--no-options") {
+            } else if (next_opt == "--no-options" || next_opt == "-n") {
                 dump_opts = false;
-            } else if (next_opt == "--model-name") {
+            } else if (next_opt == "--dump-bin") {
+                dump_bin = true;
+            } else if (next_opt == "--model-name"  || next_opt == "-m") {
                 model_name = ParseInput(argc, argv, opt_index++);
-            } else if (next_opt == "--program" || next_opt == "--variation" || next_opt == "--index") {
+            } else if (next_opt == "--program" || next_opt == "--variation" || next_opt == "--index" || next_opt == "-i") {
                 program_index = std::stoi(ParseInput(argc, argv, opt_index++));
-            } else if (next_opt == "--shader-archive") {
+            } else if (next_opt == "--shader-archive" || next_opt == "-a") {
                 archive_path = ParseInput(argc, argv, opt_index++);
             } else {
                 archive_path = next_opt;
@@ -115,7 +118,7 @@ int main(int argc , const char* argv[]) {
         }
         MakeMissingDirectories(output_path);
         try {
-            ShaderInfoPrinter(archive_path, output_path, model_name, program_index, dump_opts).Run();
+            ShaderInfoPrinter(archive_path, output_path, model_name, program_index, dump_opts, dump_bin).Run();
         } catch (const std::runtime_error& e) {
             std::cerr << "Exception caught: [" << e.what() << "]\n";
             return 1;
@@ -146,6 +149,7 @@ int main(int argc , const char* argv[]) {
         "      --model-name             : name of shading model, specify if information only about a specific model is desired; defaults to all models in the archive\n"
         "      --index                  : index of shader program to dump information about, ignore to dump information about an entire shading model; defaults to -1\n"
         "      --no-options             : skip dumping of shader options in output; defaults to include options\n"
+        "      --dump-bin               : dump shader code and control to files, ignored if no program index is specified; defaults to off\n"
         "      --out                    : path to file to output to; defaults to 'ShaderInfo.json'\n"
         "      shading_model_name       : name of shading model within archive to print info about\n\n"
         "Examples:\n"

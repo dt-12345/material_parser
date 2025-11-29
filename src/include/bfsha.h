@@ -295,11 +295,11 @@ struct ResShadingModel {
     // BNSH
     ::gfx::ResShaderFile* shader;
 
-    // fields filled in at runtime
-    void* runtime_data_pointer;
+    // user data fields filled in at runtime
+    void* runtime_mutex_pointer; // nn::os::Mutex*
     void* _b8;
     void* _c0;
-    void* runtime_user_pointer;
+    void* runtime_user_pointer; // gsys::G3dResShadingModelEx*
     void* _d0;
 
     u32 uniform_count;

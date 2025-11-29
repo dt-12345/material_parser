@@ -607,6 +607,14 @@ void ShaderInfoPrinter::Run() {
             stage_info["Code Size"] = code_ptr->code_size;
             stage_info["Control Size"] = code_ptr->control_size;
             output[cShaderStageNames[stage]] = std::move(stage_info);
+            if (mDumpBin) {
+                const std::string basename = std::format("{}_{}_{}_{}", shader_file->archive->name->Get(), model->name->Get(), mProgramIndex, cShaderStageNames[stage]);
+                const Path dir = Path(mOutputPath).parent_path();
+                const std::string code_name = (dir / Path(std::format("{}_code.bin", basename))).string();
+                const std::string control_name = (dir / Path(std::format("{}_control.bin", basename))).string();
+                mContext.WriteFile(code_name, { code_ptr->code, code_ptr->code_size });
+                mContext.WriteFile(control_name, { code_ptr->control, code_ptr->control_size });
+            }
         }
     }
 

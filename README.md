@@ -32,6 +32,7 @@ Actions:
       --model-name             : name of shading model, specify if information only about a specific model is desired; defaults to all models in the archive
       --index                  : index of shader program to dump information about, ignore to dump information about an entire shading model; defaults to -1
       --no-options             : skip dumping of shader options in output; defaults to include options
+      --dump-bin               : dump shader code and control to files, ignored if no program index is specified; defaults to off
       --out                    : path to file to output to; defaults to 'ShaderInfo.json'
       shading_model_name       : name of shading model within archive to print info about
 
