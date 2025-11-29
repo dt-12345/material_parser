@@ -51,22 +51,17 @@ bool MaterialParser::Initialize() {
     if (mInitialized)
         return mInitialized;
 
-    if (!mContext.DecompressFile(mExternalBinaryStringPath, mContext.mExternalBinaryStringStorage)) {
-        std::cout << "Failed to open " << mExternalBinaryStringPath << "\n";
-        return false;
-    }
-    
-    ResFile::ResCast(mContext.mExternalBinaryStringStorage.data());
-
-    if (!mContext.ReadFile(mMaterialArchivePath, mContext.mShaderArchiveStorage)) {
-        std::cout << "Failed to open " << mMaterialArchivePath << "\n";
+    if (!mContext.InitializeExternalBinaryString(mExternalBinaryStringPath)) {
+        std::cout << "Failed to load ExternalBinaryStrings\n";
         return false;
     }
 
-    g3d2::ResShaderFile::ResCast(mContext.mShaderArchiveStorage.data());
+    if (!mContext.InitializeShaderArchive(mMaterialArchivePath)) {
+        std::cout << "Failed to load shader archive\n";
+        return false;
+    }
 
     mInitialized = true;
-
     return true;
 }
 
@@ -185,15 +180,12 @@ bool MaterialSearcher::Initialize() {
     if (mInitialized)
         return mInitialized;
 
-    if (!mContext.ReadFile(mMaterialArchivePath, mContext.mShaderArchiveStorage)) {
-        std::cout << "Failed to open " << mMaterialArchivePath << "\n";
+   if (!mContext.InitializeShaderArchive(mMaterialArchivePath)) {
+        std::cout << "Failed to load shader archive\n";
         return false;
     }
 
-    g3d2::ResShaderFile::ResCast(mContext.mShaderArchiveStorage.data());
-
     mInitialized = true;
-
     return true;
 }
 
@@ -232,8 +224,8 @@ static const std::string_view TryConvertRenderInfo(const std::string_view key, c
     return value;
 }
 
-void MaterialSearcher::Print(const g3d2::ResShadingModel* model, const u32* keys) const {
-    *mOutStream << "Shader found with the following options:\n";
+void MaterialSearcher::Print(const g3d2::ResShadingModel* model, const u32* keys, size_t index) const {
+    *mOutStream << std::format("Shader Program {}:\n", index);
     if (mVerbose) {
         if (model->static_option_count > 0) {
             *mOutStream << "  Static:\n";
@@ -285,14 +277,9 @@ void MaterialSearcher::Run() {
 
     std::ifstream f(mConfigPath);
     json data = json::parse(f);
-    const std::string archive_name = data.value("Archive Name", "material");
     const std::string model_name = data.value("Model Name", "material");
     
     const g3d2::ResShaderFile* shader_file = mContext.GetShaderArchive();
-    if (shader_file->archive->name->Get() != archive_name) {
-        std::cout << std::format("Expected archive {} but got {}\n", archive_name, shader_file->archive->name->Get());
-        return;
-    }
 
     g3d2::ResShadingModel* model = nullptr;
     for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
@@ -304,6 +291,10 @@ void MaterialSearcher::Run() {
 
     if (model == nullptr) {
         std::cout << std::format("No model named {}\n", model_name);
+        std::cout << "Available models:\n";
+        for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
+            std::cout << "  " << shader_file->archive->shading_model_array[i].name->Get() << "\n";
+        }
         return;
     }
 
@@ -339,7 +330,7 @@ void MaterialSearcher::Run() {
             matched = matched && constraint.Match(model, keys);
         }
         if (matched) {
-            Print(model, keys);
+            Print(model, keys, i);
         }
     }
 }
@@ -348,16 +339,175 @@ bool ShaderInfoPrinter::Initialize() {
     if (mInitialized)
         return mInitialized;
 
-    if (!mContext.ReadFile(mArchivePath, mContext.mShaderArchiveStorage)) {
-        std::cout << "Failed to open " << mArchivePath << "\n";
+    if (!mContext.InitializeShaderArchive(mArchivePath)) {
+        std::cout << "Failed to load shader archive\n";
         return false;
     }
 
-    g3d2::ResShaderFile::ResCast(mContext.mShaderArchiveStorage.data());
-
     mInitialized = true;
-
     return true;
+}
+
+void ShaderInfoPrinter::ProcessInterfaces(ordered_json& output, const g3d2::ResShadingModel* model, const ResDic* names, BinString* const* interfaces, u16 count) const {
+    int base_index = 0;
+    for (size_t i = 0; i < static_cast<size_t>(count); ++i) {
+        const std::string_view name = names->entries[i + 1].key->Get();
+        output[name] = ordered_json({});
+        if (model->vertex_stage_base_location_index != -1) {
+            const BinString* ifc = interfaces[model->vertex_stage_base_location_index + base_index];
+            if (ifc != nullptr) {
+                output[name]["Vertex"] = ifc->Get();
+            }
+        }
+        if (model->geometry_stage_base_location_index != -1) {
+            const BinString* ifc = interfaces[model->geometry_stage_base_location_index + base_index];
+            if (ifc != nullptr) {
+                output[name]["Geometry"] = ifc->Get();
+            }
+        }
+        if (model->fragment_stage_base_location_index != -1) {
+            const BinString* ifc = interfaces[model->fragment_stage_base_location_index + base_index];
+            if (ifc != nullptr) {
+                output[name]["Fragment"] = ifc->Get();
+            }
+        }
+        if (model->compute_stage_base_location_index != -1) {
+            const BinString* ifc = interfaces[model->compute_stage_base_location_index + base_index];
+            if (ifc != nullptr) {
+                output[name]["Compute"] = ifc->Get();
+            }
+        }
+        if (model->hull_stage_base_location_index != -1) {
+            const BinString* ifc = interfaces[model->hull_stage_base_location_index + base_index];
+            if (ifc != nullptr) {
+                output[name]["Hull"] = ifc->Get();
+            }
+        }
+        if (model->domain_stage_base_location_index != -1) {
+            const BinString* ifc = interfaces[model->domain_stage_base_location_index + base_index];
+            if (ifc != nullptr) {
+                output[name]["Domain"] = ifc->Get();
+            }
+        }
+        base_index += model->shader_stage_count;
+    }
+}
+
+void ShaderInfoPrinter::ProcessModel(ordered_json& output, const g3d2::ResShadingModel* model) const {
+    output["Program Count"] = model->shader_program_count;
+    output["Interfaces"] = {
+        { "Samplers", ordered_json({}) },
+        { "Images", ordered_json({}) },
+        { "UBOs", ordered_json({}) },
+        { "SSBOs", ordered_json({}) },
+    };
+
+    ProcessInterfaces(output["Interfaces"]["Samplers"], model, model->sampler_dict, model->interfaces->sampler_locations, model->sampler_count);
+    // no idea if this ResDic* here is actually the image dictionary, but it would make sense if it was
+    ProcessInterfaces(output["Interfaces"]["Images"], model, model->_50, model->interfaces->image_locations, model->image_count);
+    ProcessInterfaces(output["Interfaces"]["UBOs"], model, model->uniform_block_dict, model->interfaces->ubo_locations, model->uniform_block_count);
+    ProcessInterfaces(output["Interfaces"]["SSBOs"], model, model->shader_storage_block_dict, model->interfaces->ssbo_locations, model->shader_storage_block_count);
+
+    output["Vertex Attributes"] = ordered_json({});
+    for (size_t i = 0; i < model->vertex_attribute_count; ++i) {
+        const std::string_view name = model->vertex_attribute_dict->entries[i + 1].key->Get();
+        const auto& loc = model->vertex_attribute_array[i];
+        output["Vertex Attributes"][name] = json({
+            { "Location", loc.location },
+            { "Index", loc.index },
+        });
+    }
+
+    output["Samplers"] = ordered_json({});
+    for (size_t i = 0; i < model->sampler_count; ++i) {
+        const std::string_view name = model->sampler_dict->entries[i + 1].key->Get();
+        const auto& sampler = model->sampler_array[i];
+        output["Samplers"][name] = json({
+            { "Annotation", sampler.annotation->Get() },
+            { "Index", sampler.index },
+        });
+    }
+
+    output["UBOs"] = ordered_json({});
+    for (size_t i = 0; i < model->uniform_block_count; ++i) {
+        const std::string_view name = model->uniform_block_dict->entries[i + 1].key->Get();
+        const auto& ubo = model->uniform_block_array[i];
+        ordered_json ubo_info = {
+            { "Type", static_cast<u8>(ubo.type) },
+            { "Index", ubo.index },
+            { "Size", ubo.size },
+            { "Uniforms", json::array() },
+        };
+        for (u32 j = 0; j < ubo.member_count; ++j) {
+            const auto& uniform = ubo.members[j];
+            const std::string_view name = ubo.member_dict->entries[j + 1].key->Get();
+            if (uniform.block_index != i) {
+                std::cout << "Warning: mismatching block index\n";
+            }
+            ubo_info["Uniforms"].push_back(ordered_json({
+                { "Name", name },
+                { "Annotation", uniform.annotation->Get() },
+                { "Index", uniform.index },
+                { "Offset", uniform.offset },
+            }));
+        }
+        output["UBOs"][name] = std::move(ubo_info);
+    }
+
+    output["SSBOs"] = ordered_json({});
+    for (size_t i = 0; i < model->shader_storage_block_count; ++i) {
+        const std::string_view name = model->shader_storage_block_dict->entries[i + 1].key->Get();
+        const auto& ssbo = model->shader_storage_block_array[i];
+        ordered_json ssbo_info = {
+            { "Type", static_cast<u8>(ssbo.type) },
+            { "Index", ssbo.index },
+            { "Size", ssbo.size },
+            { "Members", json::array() },
+        };
+        for (u32 j = 0; j < ssbo.member_count; ++j) {
+            const auto& uniform = ssbo.members[j];
+            const std::string_view name = ssbo.member_dict->entries[j + 1].key->Get();
+            if (uniform.block_index != i) {
+                std::cout << "Warning: mismatching block index\n";
+            }
+            ssbo_info["Members"].push_back(ordered_json({
+                { "Name", name },
+                { "Annotation", uniform.annotation->Get() },
+                { "Index", uniform.index },
+                { "Offset", uniform.offset },
+            }));
+        }
+        output["SSBOs"][name] = std::move(ssbo_info);
+    }
+
+    if (mDumpOptions) {
+        json static_options = {};
+        for (size_t i = 0; i < model->static_option_count; ++i) {
+            const auto& opt = model->static_option_array[i];
+            const std::string_view name = opt.name->Get();
+            static_options[name] = { { "Values", json::array() } };
+            for (size_t j = 0; j < opt.choice_count; ++j) {
+                static_options[name]["Values"].push_back(opt.choice_dict->entries[j + 1].key->Get());
+                if (j == opt.default_choice) {
+                    static_options[name]["Default"] = opt.choice_dict->entries[j + 1].key->Get();
+                }
+            }
+        }
+        json dynamic_options = {};
+        for (size_t i = 0; i < model->dynamic_option_count; ++i) {
+            const auto& opt = model->dynamic_option_array[i];
+            const std::string_view name = opt.name->Get();
+            dynamic_options[name] = { { "Values", json::array() } };
+            for (size_t j = 0; j < opt.choice_count; ++j) {
+                dynamic_options[name]["Values"].push_back(opt.choice_dict->entries[j + 1].key->Get());
+                if (j == opt.default_choice) {
+                    dynamic_options[name]["Default"] = opt.choice_dict->entries[j + 1].key->Get();
+                }
+            }
+        }
+        output["Static Options"] = static_options;
+        output["Dynamic Options"] = dynamic_options;
+    }
 }
 
 void ShaderInfoPrinter::Run() {
@@ -365,49 +515,101 @@ void ShaderInfoPrinter::Run() {
         return;
     
     const auto shader_file = mContext.GetShaderArchive();
-    if (shader_file->archive->name->Get() != mArchiveName) {
-        std::cout << "Archive is named " << shader_file->archive->name->Get() << " when " << mArchiveName << " was expected\n";
-        return;
-    }
-
-    const g3d2::ResShadingModel* model = nullptr;
-    for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
-        if (shader_file->archive->shading_model_array[i].name->Get() == mModelName) {
-            model = shader_file->archive->shading_model_array + i;
-            break;
+    
+    ordered_json output = {};
+    if (mProgramIndex < 0) {
+        output["Archive Name"] = shader_file->archive->name->Get();
+        if (mModelName == "") {
+            // dump all shading models
+            output["Models"] = {};
+            for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
+                const g3d2::ResShadingModel* model = shader_file->archive->shading_model_array + i;
+                const std::string_view name = model->name->Get();
+                ordered_json info = ordered_json();
+                ProcessModel(info, model);
+                output["Models"][name] = std::move(info);
+            }
+        } else {
+            // dump only the specified model
+            g3d2::ResShadingModel* model = nullptr;
+            for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
+                if (shader_file->archive->shading_model_array[i].name->Get() == mModelName) {
+                    model = shader_file->archive->shading_model_array + i;
+                    break;
+                }
+            }
+            if (model == nullptr) {
+                std::cout << "No shading model named " << mModelName << "\n";
+                return;
+            }
+            output["Model Name"] = model->name->Get();
+            ProcessModel(output, model);
         }
-    }
+    } else {
+        g3d2::ResShadingModel* model = nullptr;
+        for (size_t i = 0; i < shader_file->archive->shading_model_count; ++i) {
+            if (shader_file->archive->shading_model_array[i].name->Get() == mModelName) {
+                model = shader_file->archive->shading_model_array + i;
+                break;
+            }
+        }
+        if (model == nullptr) {
+            std::cout << "No shading model named " << mModelName << "\n";
+            return;
+        }
+        if (mProgramIndex >= model->shader_program_count) {
+            std::cout << std::format("Out of range program index for model {}: {}\n", model->name->Get(), mProgramIndex);
+            return;
+        }
 
-    if (model == nullptr) {
-        std::cout << "No model named " << mModelName << "\n";
-        return;
+        output["Archive Name"] = shader_file->archive->name->Get();
+        output["Model Name"] = model->name->Get();
+        output["Program Index"] = mProgramIndex;
+
+        const auto& program = model->program_array[mProgramIndex];
+
+        if (program.variation->binary == nullptr) {
+            std::cout << std::format("No associated shader binary with program index {} for model {}\n", mProgramIndex, model->name->Get());
+            return;
+        }
+
+        const auto* ifc_table = program.variation->binary->interfaces;
+
+        constexpr static auto cShaderStageNames = std::to_array<std::string_view>({
+            "Vertex", "Tessellation Control", "Tessellation Evaluation",
+            "Geometry", "Fragment", "Compute",
+        });
+
+        constexpr static auto cInterfaceTypeNames = std::to_array<std::string_view>({
+            "Input Attributes", "Output Attributes", "Samplers", "Uniforms",
+            "Storage Buffers", "Images", "Separate Textures", "Separate Samplers",
+        });
+
+        for (u32 stage = 0; stage < gfx::ShaderStage_End; ++stage) {
+            const auto* table = ifc_table->stages[stage];
+            if (table == nullptr) {
+                continue;
+            }
+            ordered_json stage_info = {};
+            for (u32 ifc_type = 0; ifc_type < gfx::ShaderInterfaceType_End; ++ifc_type) {
+                const auto* dic = table->GetResDic(static_cast<gfx::ShaderInterfaceType>(ifc_type));
+                if (dic == nullptr) {
+                    continue;
+                }
+                ordered_json ifc_info = {};
+                for (size_t i = 0; i < dic->node_count; ++i) {
+                    const std::string_view name = dic->entries[i + 1].key->Get();
+                    ifc_info[name] = table->GetInterfaceSlot(static_cast<gfx::ShaderInterfaceType>(ifc_type), i);
+                }
+                stage_info[cInterfaceTypeNames[ifc_type]] = std::move(ifc_info);
+            }
+            const auto* code_ptr = program.variation->binary->shader_code_ptrs[stage];
+            stage_info["Code Size"] = code_ptr->code_size;
+            stage_info["Control Size"] = code_ptr->control_size;
+            output[cShaderStageNames[stage]] = std::move(stage_info);
+        }
     }
 
     std::ofstream out(mOutputPath);
-
-    out << std::format("# Shader Options for {}\n", mModelName);
-    out << "Static Options:\n";
-    for (size_t i = 0; i < model->static_option_count; ++i) {
-        const auto& opt = model->static_option_array[i];
-        out << "  " << opt.name->Get() << ":\n";
-        for (size_t j = 0; j < opt.choice_count; ++j) {
-            if (j == opt.default_choice) {
-                out << "  - " << opt.choice_dict->entries[j + 1].key->Get() << " # Default\n";
-            } else {
-                out << "  - " << opt.choice_dict->entries[j + 1].key->Get() << "\n";
-            }
-        }
-    }
-    out << "Dynamic Options:\n";
-    for (size_t i = 0; i < model->dynamic_option_count; ++i) {
-        const auto& opt = model->dynamic_option_array[i];
-        out << "  " << opt.name->Get() << ":\n";
-        for (size_t j = 0; j < opt.choice_count; ++j) {
-            if (j == opt.default_choice) {
-                out << "  - " << opt.choice_dict->entries[j + 1].key->Get() << " # Default\n";
-            } else {
-                out << "  - " << opt.choice_dict->entries[j + 1].key->Get() << "\n";
-            }
-        }
-    }
+    out << std::setw(2) << output << std::endl;
 }

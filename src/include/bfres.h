@@ -50,7 +50,7 @@ struct ResVertexAttribute {
     BinString* name;
     u32 format;
     u16 offset;
-    u8 option_offset;
+    u8 stream_index;
     u8 is_dynamic_vbo;
 };
 static_assert(sizeof(ResVertexAttribute) == 0x10);

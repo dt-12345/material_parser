@@ -26,11 +26,13 @@ Actions:
       --out                    : path to file to output to; defaults to stdout
       query_config             : path to JSON search config file
   info [options] shading_model_name
-    Outputs information about the possible shader options in the provided shading model
+    Outputs information about specified shading model(s) (or shader program if a program index is provided)
     Arguments:
       --shader-archive         : path to the shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'
-      --archive-name           : name of shader archive; defaults to the shading model name
-      --out                    : path to file to output to; defaults to 'ShaderInfo.yml'
+      --model-name             : name of shading model, specify if information only about a specific model is desired; defaults to all models in the archive
+      --index                  : index of shader program to dump information about, ignore to dump information about an entire shading model; defaults to -1
+      --no-options             : skip dumping of shader options in output; defaults to include options
+      --out                    : path to file to output to; defaults to 'ShaderInfo.json'
       shading_model_name       : name of shading model within archive to print info about
 
 Examples:
@@ -46,7 +48,6 @@ Examples:
 
 ```json
 {
-    "Archive Name": "material",             // Shader archive name, defaults to "material" if unspecified
     "Model Name": "material",               // Shading model name, defaults to "material" if unspecified
     "Static Options": {                     // Static shader options
         "o_ao_color": "400"                 // constrain an option to the specified value - this matches shaders supporting o_ao_color == 400

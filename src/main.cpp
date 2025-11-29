@@ -89,30 +89,33 @@ int main(int argc , const char* argv[]) {
             return 1;
         }
     } else if (opt == "info") {
-        std::string model = "";
-        std::string archive = "";
         std::string archive_path = "";
         std::string output_path = "";
+        std::string model_name = "";
+        bool dump_opts = true;
+        int program_index = -1;
         while (opt_index + 1 < argc) {
             const std::string next_opt = ParseInput(argc, argv, opt_index++);
-            if (next_opt == "--shader-archive") {
-                archive_path = ParseInput(argc, argv, opt_index++);
-            } else if (next_opt == "--archive-name") {
-                archive = ParseInput(argc, argv, opt_index++);
-            } else if (next_opt == "--out") {
+            if (next_opt == "--out") {
                 output_path = ParseInput(argc, argv, opt_index++);
                 if (output_path == "-") {
                     output_path = "";
                 }
-            } else if (next_opt == "--model") {
-                model = ParseInput(argc, argv, opt_index++);
+            } else if (next_opt == "--no-options") {
+                dump_opts = false;
+            } else if (next_opt == "--model-name") {
+                model_name = ParseInput(argc, argv, opt_index++);
+            } else if (next_opt == "--program" || next_opt == "--variation" || next_opt == "--index") {
+                program_index = std::stoi(ParseInput(argc, argv, opt_index++));
+            } else if (next_opt == "--shader-archive") {
+                archive_path = ParseInput(argc, argv, opt_index++);
             } else {
-                model = next_opt;
+                archive_path = next_opt;
             }
         }
         MakeMissingDirectories(output_path);
         try {
-            ShaderInfoPrinter(model, archive, archive_path, output_path).Run();
+            ShaderInfoPrinter(archive_path, output_path, model_name, program_index, dump_opts).Run();
         } catch (const std::runtime_error& e) {
             std::cerr << "Exception caught: [" << e.what() << "]\n";
             return 1;
@@ -137,11 +140,13 @@ int main(int argc , const char* argv[]) {
         "      --out                    : path to file to output to; defaults to stdout\n"
         "      query_config             : path to JSON search config file\n"
         "  info [options] shading_model_name\n"
-        "    Outputs information about the possible shader options in the provided shading model\n"
+        "    Outputs information about specified shading model(s) (or shader program if a program index is provided)\n"
         "    Arguments:\n"
         "      --shader-archive         : path to the shader archive (needs to be decompressed); defaults to 'material.Product.140.product.Nin_NX_NVN.bfsha'\n"
-        "      --archive-name           : name of shader archive; defaults to the shading model name\n"
-        "      --out                    : path to file to output to; defaults to 'ShaderInfo.yml'\n"
+        "      --model-name             : name of shading model, specify if information only about a specific model is desired; defaults to all models in the archive\n"
+        "      --index                  : index of shader program to dump information about, ignore to dump information about an entire shading model; defaults to -1\n"
+        "      --no-options             : skip dumping of shader options in output; defaults to include options\n"
+        "      --out                    : path to file to output to; defaults to 'ShaderInfo.json'\n"
         "      shading_model_name       : name of shading model within archive to print info about\n\n"
         "Examples:\n"
         "  Dump information about materials in romfs:\n"

@@ -17,6 +17,7 @@
 #include <vector>
 
 using json = nlohmann::json;
+using ordered_json = nlohmann::ordered_json;
 using Path = std::filesystem::path;
 
 struct AppContext {
@@ -24,10 +25,16 @@ public:
     AppContext() {}
 
     const ResFile* GetExternalBinaryString() {
+        if (mShaderArchiveStorage.empty()) {
+            throw std::runtime_error("Tried to access external binary strings before initialization!");
+        }
         return ResFile::ResCast(mExternalBinaryStringStorage.data());
     }
 
     const g3d2::ResShaderFile* GetShaderArchive() {
+        if (mShaderArchiveStorage.empty()) {
+            throw std::runtime_error("Tried to access shader archive before initialization!");
+        }
         return g3d2::ResShaderFile::ResCast(mShaderArchiveStorage.data());
     }
 
@@ -47,6 +54,24 @@ public:
             return nullptr;
 
         return file;
+    }
+
+    bool InitializeExternalBinaryString(const std::string& path) {
+        if (!DecompressFile(path, mExternalBinaryStringStorage)) {
+            std::cout << "Failed to open " << path << "\n";
+            return false;
+        }
+        
+        return ResFile::ResCast(mExternalBinaryStringStorage.data()) != nullptr;
+    }
+
+    bool InitializeShaderArchive(const std::string& path) {
+        if (!ReadFile(path, mShaderArchiveStorage)) {
+            std::cout << "Failed to open " << path << "\n";
+            return false;
+        }
+
+        return g3d2::ResShaderFile::ResCast(mShaderArchiveStorage.data()) != nullptr;
     }
 
     std::vector<u8> mExternalBinaryStringStorage{};
@@ -206,7 +231,7 @@ public:
     void Run();
 
 private:
-    void Print(const g3d2::ResShadingModel* model, const u32* keys) const;
+    void Print(const g3d2::ResShadingModel* model, const u32* keys, size_t index) const;
 
     std::string mConfigPath{};
     std::string mMaterialArchivePath{};
@@ -222,19 +247,17 @@ private:
 class ShaderInfoPrinter {
 public:
     ShaderInfoPrinter() = delete;
-    explicit ShaderInfoPrinter(const std::string_view model,
-                               const std::string_view archive = "",
-                               const std::string_view archive_path = "",
-                               const std::string_view output_path = "")
-        : mArchivePath(archive_path), mArchiveName(archive), mModelName(model), mOutputPath(output_path) {
-        if (archive == "") {
-            mArchiveName = mModelName;
-        }
-        if (archive_path == "") {
-            mArchivePath = "material.Product.140.product.Nin_NX_NVN.bfsha";
-        }
+    explicit ShaderInfoPrinter(const std::string_view archive_path,
+                               const std::string_view output_path = "",
+                               const std::string_view model_name = "",
+                               int program_index = -1,
+                               bool dump_options = true)
+        : mArchivePath(archive_path), mOutputPath(output_path), mModelName(model_name), mProgramIndex(program_index), mDumpOptions(dump_options) {
         if (mOutputPath == "") {
-            mOutputPath = "ShaderInfo.yml";
+            mOutputPath = "ShaderInfo.json";
+        }
+        if (mProgramIndex >= 0 && mModelName == "") {
+            mModelName = "material";
         }
     }
 
@@ -242,10 +265,14 @@ public:
     void Run();
 
 private:
+    void ProcessModel(ordered_json& output, const g3d2::ResShadingModel* model) const;
+    void ProcessInterfaces(ordered_json& output, const g3d2::ResShadingModel* model, const ResDic* names, BinString* const* interfaces, u16 count) const;
+
     std::string mArchivePath{};
-    std::string mArchiveName{};
-    std::string mModelName{};
     std::string mOutputPath{};
+    std::string mModelName{};
     AppContext mContext{};
+    int mProgramIndex = -1;
     bool mInitialized = false;
+    bool mDumpOptions = true;
 };
